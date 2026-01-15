@@ -43,7 +43,45 @@ zig build test
 
 ## Documentation
 
-Comprehensive documentation is available in the [docs/](docs/) directory:
+```mermaid
+sequenceDiagram
+    autonumber
+    participant Host as Host App (Node/JS/Python)
+    box "ziggum-core (Shared Library)"
+        participant ABI as C ABI (lib.zig)
+        participant Core as Agent Core
+        participant Net as HTTP Client
+    end
+    participant API as LLM (Anthropic/Ollama)
+
+    Note over Host, API: 1. Initialization
+    Host->>ABI: zg_init(api_key)
+    ABI->>Core: Agent.init()
+    Core-->>ABI: Returns *Agent
+    ABI-->>Host: Returns Opaque Pointer
+
+    Note over Host, API: 2. Execution Loop
+    Host->>ABI: zg_send_prompt(ptr, "Hello")
+    ABI->>Core: agent.sendPrompt()
+    Core->>Net: http_client.send()
+    Net->>API: POST Request
+    API-->>Net: JSON Response
+    Net-->>Core: Parsed Struct
+    Core-->>ABI: Success (0)
+    
+    loop Chunked Reading
+        Host->>ABI: zg_read_chunk(buffer)
+        ABI->>Core: agent.readChunk()
+        Core-->>Host: Copy bytes to buffer
+    end
+
+    Note over Host, API: 3. Cleanup
+    Host->>ABI: zg_deinit(ptr)
+    ABI->>Core: agent.deinit()
+    Core->>Core: Free Memory
+```
+
+Further documentation written by Wiggum is available in the [docs/](docs/) directory:
 
 - [**The Inner Machinations**](docs/ARCHITECTURE.md): Architecture overview.
 - [**The Secret Club Rules**](docs/CONFIGURATION.md): Configuration details.
